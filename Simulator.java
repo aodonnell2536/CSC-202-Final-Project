@@ -1,37 +1,32 @@
 import java.util.ArrayList;
+import java.util.TreeSet;
 
 public abstract class Simulator {
-
-	// TODO: LOGGING
 	
+	// Customer handling
 	protected Queue<Customer> customers;
 	protected static ArrayList<Queue<Customer>> fullLaneQueues;
 	protected static Queue<Customer> selfLaneQueue;
 	protected Customer[] selfLanes;
 	protected double averageWaitTime;
+	
+	// Functionality
 	protected static int selfPercentSlower, numCustomers;
 	protected int numFullLanes, numSelfLanes;
-	protected int time, finalTime;
+	protected int time;
 	protected int currentID;
+	protected boolean servicing;
+	
+	// Analytics
 	protected int customersHelped;
 	protected int customersSatisfied, customersDissatisfied;
-	
+	protected int totalUnusedTime;
+	protected TreeSet<Customer> customersCompleted;
 	
 	public void run() {
 		
-		time = 0;
-		currentID = 0;
-		customersHelped = 0;
-		customersDissatisfied = 0;
-		customersSatisfied = 0;
-		averageWaitTime = 0;
-		customers =  new Queue<Customer>();
-		fullLaneQueues = new ArrayList<Queue<Customer>>();
-		selfLaneQueue = new Queue<Customer>();
-		
+		// Initializing based off sim or test implementation
 		initialize();
-		
-		boolean servicing = true;
 		
 		while (servicing) {
 			
@@ -56,17 +51,25 @@ public abstract class Simulator {
 			}
 			
 			// Handling customer departure for full service
+			int currentLane = 1;
 			for (Queue<Customer> queue : fullLaneQueues) {
 				
 				if (queue.size() != 0 && time == queue.peek().getFinishTime()) {
-					System.out.printf("\t\tCustomer %d has finished their service.\n", queue.pop().getID());
+					Customer customer = queue.pop();
+					System.out.printf("\t\tCustomer %d has finished their service.\n", customer.getID());
+					customersCompleted.add(customer);
+					if (queue.size() != 0)
+						System.out.printf("\t\tCustomer %d has begun service in full lane %d.\n", customer.getID(), currentLane);
 				}
+				currentLane++;
 				
 			}
 			
-			// Customer arrival for full service is 'handled' by having
-			// the current helped customer at the front of the queue
-			// as a little logic hack
+			/*  
+			 * Customer arrival for full service is 'handled' by having
+			 * the current helped customer at the front of the queue
+			 * as a little logical hack
+			 */
 			
 			// Handling customer departure for self service
 			for (int i = 0; i < selfLanes.length; i++) {
@@ -75,6 +78,7 @@ public abstract class Simulator {
 				
 				if (customer != null && time == customer.getFinishTime()) {
 					System.out.printf("\t\tCustomer %d has finished their service.\n", customer.getID());
+					customersCompleted.add(customer);
 					selfLanes[i] = null;
 				}
 				
@@ -84,12 +88,20 @@ public abstract class Simulator {
 			if (selfLaneQueue.size() != 0 && time == selfLaneQueue.peek().getArrivalTime()) {
 				for (int i = 0; i < selfLanes.length; i++) {
 					if (selfLanes[i] == null) {
-						selfLanes[i] = selfLaneQueue.pop();
+						Customer customer = selfLaneQueue.pop();
+						customer.setLaneNumber(i + 1);
+						selfLanes[i] = customer;
 						System.out.printf("\t\tCustomer %d has begun service at self lane %d.\n", selfLanes[i].getID(), i + 1);
 						break;
 					}
 				}
 			}
+			
+			// Compiling the unused time for analytics
+			for (Queue<Customer> queue : fullLaneQueues)
+				if (queue.isEmpty()) totalUnusedTime++;
+			for (Customer customer : selfLanes)
+				if (customer == null) totalUnusedTime++;
 			
 			// Logging the status of all the current lanes
 			System.out.printf("\tLane Status : \n");
@@ -143,10 +155,33 @@ public abstract class Simulator {
 		System.out.println("\nSIMULATION HAS ENDED\n");
 		
 		System.out.println("Analytics : ");
-		System.out.printf("Average wait time : %f\n", averageWaitTime);
-		System.out.printf("Satisfied Customers : %d\n", customersSatisfied);
-		System.out.printf("Dissatisfied Customers : %d\n", customersDissatisfied);
+		System.out.printf("\tAverage wait time : %f min \n", averageWaitTime);
+		System.out.printf("\tSatisfied Customers : %d\n", customersSatisfied);
+		System.out.printf("\tDissatisfied Customers : %d\n", customersDissatisfied);
+		System.out.printf("\tPercentage of customers that were satisfied : %.2f%%\n", (((double) customersSatisfied) / customersHelped) * 100);
+		System.out.printf("\tTotal time lanes were unused : %d min\n", totalUnusedTime);
+//		System.out.printf("\tPercentage of time a lane went unused : %f%%\n", (((double)totalUnusedTime) / (time * (numFullLanes + numSelfLanes)) * 100));
 		
+		System.out.println("\nBREAKDOWN OF EACH CUSTOMER'S EXPERIENCE\n");
+		
+		System.out.printf("%10s\t%10s\t%10s\t%10s\t%10s\t%10s\t%10s\t%10s\t%10s\n", "ID"
+				, "Arrival", "Serv. Start", "Serv. Time", "Wait Time"
+				, "Fin. Time", "Lane Type", "Lane #", "Satisfied?");
+		
+		for (Customer customer : customersCompleted) {
+			
+			System.out.printf("%-10d\t%-10d\t%-10d\t%-10d\t%-10d\t%-10d\t%-10s\t%-10d\t%-10s\n",
+					customer.getID(), customer.getArrivalTime()
+					, customer.getFinishTime() - customer.getServiceTime()
+					, customer.getServiceTime(), customer.getWaitTime()
+					, customer.getFinishTime() , (customer.isFull() ? "FULL" : "SELF")
+					, customer.getLaneNumber(), (customer.getWaitTime() >= 5 ? "FALSE" : "TRUE"));
+			
+		}
+		
+		System.out.println("\nEND OF ANALYTICS\n");
+		
+		System.out.println("Thank you for using the Java Market Driver v3. Have a nice day!");
 		
 		
 	}
@@ -154,6 +189,8 @@ public abstract class Simulator {
 	protected abstract void initialize();
 	
 	private static void addCustomerToFull(Customer customer) {
+		
+		customer.setFull(true);
 		
 		int iMin = 0, minSize = Integer.MAX_VALUE;
 		for (int i = 0; i < fullLaneQueues.size(); i++) 
@@ -174,12 +211,15 @@ public abstract class Simulator {
 		
 		fullLaneQueues.get(iMin).push(customer);
 		
-		System.out.printf("\t\tCustomer %d has arrived for full service and is queued in lane %d.\n", customer.getID(), iMin + 1);
+		customer.setLaneNumber(iMin + 1);
 		
+		System.out.printf("\t\tCustomer %d has arrived for full service and is queued in lane %d.\n", customer.getID(), iMin + 1);
 		
 	}
 	
 	private static void addCustomerToSelf(Customer customer) {
+		
+		customer.setFull(false);
 		
 		customer.setServiceTime(customer.getServiceTime() + selfPercentSlower*customer.getServiceTime());
 		
@@ -200,7 +240,7 @@ public abstract class Simulator {
 	
 	private void recalcAverageWait(int nextWaitTime) {
 		
-		averageWaitTime = ((customersHelped - 1) * averageWaitTime + nextWaitTime) / customersHelped;
+		averageWaitTime = (((customersHelped - 1) * averageWaitTime) + nextWaitTime) / customersHelped;
 		
 	}
 	
