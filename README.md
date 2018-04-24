@@ -2,4 +2,4 @@
 Final Project for CSC 202 Spring 2018
 
 KNOWN BUGS - 
-  Customers Helped TreeSet not storing all customers
+  1. Customers not being added to self service from the self service queue
