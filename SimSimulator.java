@@ -1,14 +1,28 @@
+import java.util.ArrayList;
 import java.util.Scanner;
+import java.util.TreeSet;
 
 public class SimSimulator extends Simulator {
 
 	private CustomerCreator customerCreator;
 	
 	public SimSimulator() {
-		
+		initialize();
 	}
 	
 	protected void initialize() {
+
+		time = 0;
+		currentID = 1;
+		customersHelped = 0;
+		customersDissatisfied = 0;
+		customersSatisfied = 0;
+		averageWaitTime = 0;
+		totalUnusedTime = 0;
+		customers =  new Queue<Customer>();
+		fullLaneQueues = new ArrayList<Queue<Customer>>();
+		selfLaneQueue = new Queue<Customer>();
+		customersCompleted = new TreeSet<Customer>();
 		
 		Scanner in = new Scanner(System.in);
 		System.out.println("Minimum inter-arrival time : ");
@@ -28,9 +42,13 @@ public class SimSimulator extends Simulator {
 		System.out.println("Percent slower for self checkout : ");
 		this.selfPercentSlower = in.nextInt();
 		
+		fullLaneUnusedTime = new int[numFullLanes];
+		selfLaneUnusedTime = new int[numSelfLanes];
+		selfLanes = new Customer[numSelfLanes];
+		for (int i = 0; i < numFullLanes; i++)
+			fullLaneQueues.add(new Queue<Customer>());
+		
 		this.customerCreator = new CustomerCreator(minInterArrival, maxInterArrival, minService, maxService);
-		fullLanes = new boolean[numFullLanes];
-		selfLanes = new boolean[numSelfLanes];
 		createCustomers();
 		
 	}
