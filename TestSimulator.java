@@ -7,8 +7,6 @@ import java.util.Scanner;
 import java.util.TreeSet;
 
 public class TestSimulator extends Simulator {
-
-	// TODO : Create the content for the TestSimulator class
 	
 	public TestSimulator() { initialize(); }
 	
@@ -21,6 +19,10 @@ public class TestSimulator extends Simulator {
 		customersSatisfied = 0;
 		averageWaitTime = 0;
 		totalUnusedTime = 0;
+		totalUnusedTimeFull = 0;
+		totalUnusedTimeSelf = 0;
+		minUnusedFull = 0;
+		minUnusedSelf = 0;
 		customers =  new Queue<Customer>();
 		fullLaneQueues = new ArrayList<Queue<Customer>>();
 		selfLaneQueue = new Queue<Customer>();
@@ -31,6 +33,8 @@ public class TestSimulator extends Simulator {
 		
 		fullLaneUnusedTime = new int[numFullLanes];
 		selfLaneUnusedTime = new int[numSelfLanes];
+		numCustFull = new int[numFullLanes];
+		numCustSelf = new int[numSelfLanes];
 		selfLanes = new Customer[numSelfLanes];
 		for (int i = 0; i < numFullLanes; i++)
 			fullLaneQueues.add(new Queue<Customer>());
