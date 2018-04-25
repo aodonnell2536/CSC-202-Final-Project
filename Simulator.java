@@ -21,9 +21,12 @@ public abstract class Simulator {
 	// Analytics
 	protected int customersHelped;
 	protected int customersSatisfied, customersDissatisfied;
-	protected int totalUnusedTime;
-	protected int[] fullLaneUnusedTime, selfLaneUnusedTime;
-	protected TreeSet<Customer> customersCompleted;
+	protected int totalUnusedTime, totalUnusedTimeFull, totalUnusedTimeSelf;
+	protected int minUnusedFull, minUnusedSelf, minUnusedTotal;
+	protected int[] fullLaneUnusedTime, selfLaneUnusedTime;		// Unused time for each lane
+	protected int[] numCustFull, numCustSelf;					// Num customers serviced each lane
+	protected TreeSet<Customer> customersCompleted;				// Set of completed customers in tree set for auto sorting by id
+																
 	
 	public void run() {
 		
@@ -108,21 +111,33 @@ public abstract class Simulator {
 			// and compiling unused lane time
 			System.out.printf("\tLane Status : \n");
 			
+			boolean unusedFull = false, unused = false;;
 			// Logging full lanes
 			int currentQueueNum = 1;
 			System.out.printf("\t\tFull Lanes : \n");
 			for (Queue<Customer> queue : fullLaneQueues) {
 				
-				System.out.printf("\t\t\tFull lane %d : ", currentQueueNum++);
+				System.out.printf("\t\t\tFull lane %d : ", currentQueueNum);
 				
 				if (queue.size() != 0) {
 					System.out.printf("Customer %d\n", queue.peek().getID());
-					totalUnusedTime++;
-				} else
+				} else {
 					System.out.printf("Empty\n");
+					totalUnusedTimeFull++;
+					fullLaneUnusedTime[currentQueueNum - 1]++;
+					if (!unusedFull) {
+						minUnusedFull++;
+						minUnusedTotal++;
+						unusedFull = true;
+						unused = true;
+					}
+				}
+				
+				currentQueueNum++;
 				
 			}
 			
+			boolean unusedSelf = false;
 			// Logging self lanes
 			System.out.printf("\t\tSelf Lanes : \n");
 			for (int i = 0; i < selfLanes.length; i++) {
@@ -133,7 +148,16 @@ public abstract class Simulator {
 				
 				if (customer == null) {
 					System.out.println("Empty");
-					totalUnusedTime++;
+					totalUnusedTimeSelf++;
+					selfLaneUnusedTime[i]++;
+					if (!unusedSelf) {
+						minUnusedSelf++;
+						if (!unused) {
+							minUnusedTotal++;
+							unused = true;
+						}
+						unusedSelf = true;
+					}
 				} else
 					System.out.printf("Customer %d\n", customer.getID());
 				
@@ -148,14 +172,20 @@ public abstract class Simulator {
 				for (Customer customer : selfLanes)
 					if (customer != null)
 						allEmpty = false;
-				servicing = !allEmpty;			// All customers have been helped and sim is over
+				servicing = !allEmpty;	// All customers have been helped and sim is over if all are empty
 			}
 			
 			time++;
 			
 		}
 		
-		// Logging Analytics
+		totalUnusedTime = totalUnusedTimeSelf + totalUnusedTimeFull;
+		
+		/*
+		 * 	SIMULATION IS DONE
+		 *  ANALYTICS LOGGED THEN PROGRAM ENDS
+		 */
+		
 		System.out.println("\nSIMULATION HAS ENDED\n");
 		
 		System.out.println("Customer analytics : ");
@@ -165,8 +195,27 @@ public abstract class Simulator {
 		System.out.printf("\tPercentage of customers that were satisfied : %.2f%%\n", (((double) customersSatisfied) / customersHelped) * 100);
 		
 		System.out.println("\nLane Analytics : ");
+		System.out.printf("\tTotal time a full lane went unused : %d min\n", totalUnusedTimeFull);
+		System.out.printf("\tTotal time a self lane went unused : %d min\n", totalUnusedTimeSelf);
 		System.out.printf("\tTotal time lanes were unused : %d min\n", totalUnusedTime);
-		// TODO: Full/Self Lane analysis
+		// TODO: FIX THESE THESE ANALYTICS BELOW
+		System.out.printf("\tPercent time at least one full lane went unused : %.2f%%\n", (((double)minUnusedFull) / time) * 100);
+		System.out.printf("\tPercent time at least one self lane went unused : %.2f%%\n", (((double)minUnusedSelf) / time) * 100);
+		System.out.printf("\tPercent time at least one lane went unused : %.2f%%\n", (((double)minUnusedTotal) / time) * 100);
+		
+		System.out.println("\nBREAKDOWN OF EACH LANE\n");
+		System.out.printf("%-10s\t%-10s\t%-10s\t%-10s\t%-10s\n"
+				, "Lane Type", "Lane Num", "Custs served", "Unused time", "% time unused");
+		for (int i = 0; i < numFullLanes; i++) {
+			System.out.printf("%-10s\t%-10d\t%-10d\t%-10d\t%-10.2f\n"
+					, "FULL", i + 1, numCustFull[i], fullLaneUnusedTime[i]
+							, ((double)fullLaneUnusedTime[i] / time) * 100);
+		}
+		for (int i = 0; i < numSelfLanes; i++) {
+			System.out.printf("%-10s\t%-10d\t%-10d\t%-10d\t%-10.2f\n"
+					, "SELF", i + 1, numCustSelf[i], selfLaneUnusedTime[i]
+							, ((double)selfLaneUnusedTime[i] / time) * 100);
+		}
 		
 		System.out.println("\nBREAKDOWN OF EACH CUSTOMER'S EXPERIENCE\n");
 		
@@ -216,7 +265,10 @@ public abstract class Simulator {
 		customer.setLaneNumber(iMin + 1);
 		fullLaneQueues.get(iMin).push(customer);
 		
-		System.out.printf("\t\tCustomer %d has arrived for full service and is queued in lane %d.\n", customer.getID(), iMin + 1);
+		if (fullLaneQueues.get(iMin).size() == 0)
+			System.out.printf("\t\tCustomer %d has arrived for full service and began service instantly in lane %d", customer.getID(), iMin + 1);
+		else
+			System.out.printf("\t\tCustomer %d has arrived for full service and is queued in lane %d.\n", customer.getID(), iMin + 1);
 		
 	}
 	
