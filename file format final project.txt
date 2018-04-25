@@ -1,0 +1,10 @@
+numFull numSelf
+%slower
+num customers
+*BEGIN CUSTOMERS*
+** ASSUMES THE ARRIVAL TIMES ARE SEQUENTIAL ** 
+arrival service fullBoolean
+.
+.
+.
+*END CUSTOMERS*
