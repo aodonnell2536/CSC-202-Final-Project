@@ -14,7 +14,6 @@ public class TestSimulator extends Simulator {
 		
 		time = 0;
 		currentID = 1;
-		customersHelped = 0;
 		customersDissatisfied = 0;
 		customersSatisfied = 0;
 		averageWaitTime = 0;
@@ -23,6 +22,8 @@ public class TestSimulator extends Simulator {
 		totalUnusedTimeSelf = 0;
 		minUnusedFull = 0;
 		minUnusedSelf = 0;
+		averageFullWaitTime = 0;
+		averageSelfWaitTime = 0;
 		customers =  new Queue<Customer>();
 		fullLaneQueues = new ArrayList<Queue<Customer>>();
 		selfLaneQueue = new Queue<Customer>();
@@ -51,7 +52,6 @@ public class TestSimulator extends Simulator {
 		File file = new File(fd.getDirectory() + fd.getFile());
 		f.setVisible(false);
 		
-		
 		Scanner in = new Scanner(file);
 		
 		numFullLanes = in.nextInt();
@@ -69,7 +69,6 @@ public class TestSimulator extends Simulator {
 		}
 		
 		in.close();
-		
 		
 	}
 	
