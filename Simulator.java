@@ -3,31 +3,29 @@ import java.util.TreeSet;
 
 public abstract class Simulator {
 
-	// Customer handling
-	protected Queue<Customer> customers;
-	protected static ArrayList<Queue<Customer>> fullLaneQueues;
-	protected static Queue<Customer> selfLaneQueue;
-	protected static Customer[] selfLanes;
-	protected double averageWaitTime;
-
 	// Functionality
-	protected static int selfPercentSlower;
-	protected static int numCustomers;
+	protected Queue<Customer> customers;
+	protected ArrayList<Queue<Customer>> fullLaneQueues;
+	protected Queue<Customer> selfLaneQueue;
+	protected Customer[] selfLanes;
+	protected int selfPercentSlower;
+	protected int numCustomers;
 	protected int numFullLanes, numSelfLanes;
 	protected int time;
 	protected int currentID;
-	protected boolean servicing;
+	protected boolean servicing;			// Set of completed customers in tree set for auto sorting by id
 
 	// Analytics
-	protected int customersHelped;
+	protected double averageWaitTime, averageSelfWaitTime, averageFullWaitTime;
 	protected int customersSatisfied, customersDissatisfied;
 	protected int totalUnusedTime, totalUnusedTimeFull, totalUnusedTimeSelf;
 	protected int minUnusedFull, minUnusedSelf, minUnusedTotal;
 	protected int[] fullLaneUnusedTime, selfLaneUnusedTime;		// Unused time for each lane
-	protected static int[] numCustFull, numCustSelf;					// Num customers serviced each lane
-	protected TreeSet<Customer> customersCompleted;				// Set of completed customers in tree set for auto sorting by id
+	protected int[] numCustFull, numCustSelf;					// Num customers serviced each lane
+	protected TreeSet<Customer> customersCompleted;	
 
-
+	protected abstract void initialize();
+	
 	public void run() {
 
 		servicing = true;
@@ -107,7 +105,7 @@ public abstract class Simulator {
 			System.out.printf("\tLane Status : \n");
 
 			// Used to keep track of when lanes are unused for a single unit of time
-			boolean unusedFull = false, unused = false;
+			boolean unusedFull = false;
 
 			// Logging full lanes
 			int currentQueueNum = 1;
@@ -125,7 +123,6 @@ public abstract class Simulator {
 						minUnusedFull++;
 						minUnusedTotal++;
 						unusedFull = true;
-						unused = true;
 					}
 				}
 
@@ -147,9 +144,8 @@ public abstract class Simulator {
 					selfLaneUnusedTime[i]++;
 					if (!unusedSelf) {
 						minUnusedSelf++;
-						if (!unused) {
+						if (!unusedFull) {
 							minUnusedTotal++;
-							unused = true;
 						}
 						unusedSelf = true;
 					}
@@ -192,10 +188,13 @@ public abstract class Simulator {
 			else 
 				customersSatisfied++;
 
-			if (customer.isFull())
+			if (customer.isFull()) {
 				numCustFull[customer.getLaneNumber() - 1]++;
-			else
+				averageFullWaitTime += (double) customer.getWaitTime() / time;
+			} else {
 				numCustSelf[customer.getLaneNumber() - 1]++;
+				averageSelfWaitTime += (double) customer.getWaitTime() / time;
+			}
 
 		}
 
@@ -208,12 +207,16 @@ public abstract class Simulator {
 
 		/* Logging Analytics */
 
+		// Customer analytics
 		System.out.println("Customer analytics : ");
 		System.out.printf("\tAverage wait time : %.2f min\n", averageWaitTime);
+		System.out.printf("\tAverage wait time for full service %.2f\n", averageFullWaitTime);
+		System.out.printf("\tAverage wait time for self service %.2f\n", averageSelfWaitTime);
 		System.out.printf("\tSatisfied Customers : %d\n", customersSatisfied);
 		System.out.printf("\tDissatisfied Customers : %d\n", customersDissatisfied);
 		System.out.printf("\tPercentage of customers that were satisfied : %.2f%%\n", (((double) customersSatisfied) / numCustomers) * 100);
 
+		// Lane analytics
 		System.out.println("\nLane Analytics : ");
 		System.out.printf("\tTotal time a full lane went unused : %d min\n", totalUnusedTimeFull);
 		System.out.printf("\tTotal time a self lane went unused : %d min\n", totalUnusedTimeSelf);
@@ -221,24 +224,6 @@ public abstract class Simulator {
 		System.out.printf("\tPercent time at least one full lane went unused : %.2f%%\n", (((double)minUnusedFull) / time) * 100);
 		System.out.printf("\tPercent time at least one self lane went unused : %.2f%%\n", (((double)minUnusedSelf) / time) * 100);
 		System.out.printf("\tPercent time at least one lane went unused : %.2f%%\n", (((double)minUnusedTotal) / time) * 100);
-
-		// Lane breakdown
-		System.out.println("\nBREAKDOWN OF EACH LANE\n");
-
-		System.out.printf("%-10s\t%-10s\t%-10s\t%-10s\t%-10s\n"
-				, "Lane Type", "Lane Num", "Custs served", "Unused time", "% time unused");
-
-		for (int i = 0; i < numFullLanes; i++) {
-			System.out.printf("%-10s\t%-10d\t%-10d\t%-10d\t%.2f%%\n"
-					, "FULL", i + 1, numCustFull[i], fullLaneUnusedTime[i]
-							, ((double)fullLaneUnusedTime[i] / time) * 100);
-		}
-
-		for (int i = 0; i < numSelfLanes; i++) {
-			System.out.printf("%-10s\t%-10d\t%-10d\t%-10d\t%.2f%%\n"
-					, "SELF", i + 1, numCustSelf[i], selfLaneUnusedTime[i]
-							, ((double)selfLaneUnusedTime[i] / time) * 100);
-		}
 
 		// Customer breakdown
 		System.out.println("\nBREAKDOWN OF EACH CUSTOMER'S EXPERIENCE\n");
@@ -257,13 +242,31 @@ public abstract class Simulator {
 					, customer.getLaneNumber(), (customer.getWaitTime() >= 5 ? "FALSE" : "TRUE"));
 
 		}
+		
+		// Lane breakdown
+		System.out.println("\nBREAKDOWN OF EACH LANE\n");
+
+		System.out.printf("%-10s\t%-10s\t%-10s\t%-10s\t%-10s\n"
+				, "Lane Type", "Lane Num", "Custs served", "Unused time", "% time unused");
+
+		for (int i = 0; i < numFullLanes; i++) {
+			System.out.printf("%-10s\t%-10d\t%-10d\t%-10d\t%.2f%%\n"
+					, "FULL", i + 1, numCustFull[i], fullLaneUnusedTime[i]
+							, ((double)fullLaneUnusedTime[i] / time) * 100);
+		}
+
+		for (int i = 0; i < numSelfLanes; i++) {
+			System.out.printf("%-10s\t%-10d\t%-10d\t%-10d\t%.2f%%\n"
+					, "SELF", i + 1, numCustSelf[i], selfLaneUnusedTime[i]
+							, ((double)selfLaneUnusedTime[i] / time) * 100);
+		}
 
 		System.out.println("\nSuggestions : ");
 		boolean noSuggestions = true;
-		if (((double)customersSatisfied / numCustomers) < 0.5) {
+		if (((double)customersSatisfied / numCustomers) < 0.7) {
 
 			noSuggestions = false;
-			System.out.println("Over half of your customers were disatisfied! You may want to change something!");
+			System.out.println("Over 30% of your customers were disatisfied! You may want to change something!");
 
 			if ((double)minUnusedFull / time <= 0.2)
 				System.out.println("The full lanes saw very little unused time. Maybe try adding another.");
@@ -296,9 +299,7 @@ public abstract class Simulator {
 
 	}
 
-	protected abstract void initialize();
-
-	private static void addCustomerToFull(Customer customer) {
+	private void addCustomerToFull(Customer customer) {
 
 		// Finding the smallest sized queue
 		int iMin = 0, minSize = Integer.MAX_VALUE;
@@ -313,21 +314,21 @@ public abstract class Simulator {
 				customer.getArrivalTime() + customer.getServiceTime() : 
 					fullLaneQueues.get(iMin).rearPeek().getFinishTime() + customer.getServiceTime();
 
-				// Setting fields of the customer being added and adding to the queue
-				customer.setFull(true);
-				customer.setFinishTime(finishTime);
-				customer.setWaitTime();		// Necessary info resides within Customer class at this point
-				customer.setLaneNumber(iMin + 1);
-				fullLaneQueues.get(iMin).push(customer);
+		// Setting fields of the customer being added and adding to the queue
+		customer.setFull(true);
+		customer.setFinishTime(finishTime);
+		customer.setWaitTime();		// Necessary info resides within Customer class at this point
+		customer.setLaneNumber(iMin + 1);
+		fullLaneQueues.get(iMin).push(customer);
 
-				if (fullLaneQueues.get(iMin).size() == 0)
-					System.out.printf("\t\tCustomer %d has arrived for full service and began service instantly in lane %d", customer.getID(), iMin + 1);
-				else
-					System.out.printf("\t\tCustomer %d has arrived for full service and is queued in lane %d.\n", customer.getID(), iMin + 1);
+		if (fullLaneQueues.get(iMin).size() == 0)
+			System.out.printf("\t\tCustomer %d has arrived for full service and began service instantly in lane %d", customer.getID(), iMin + 1);
+		else
+			System.out.printf("\t\tCustomer %d has arrived for full service and is queued in lane %d.\n", customer.getID(), iMin + 1);
 
 	}
 
-	private static void addCustomerToSelf(Customer customer) {
+	private void addCustomerToSelf(Customer customer) {
 
 		// Adjusting the service time with 'selfPercentSlower'
 		customer.setServiceTime(customer.getServiceTime() + (int)((double)selfPercentSlower/100)*customer.getServiceTime());
