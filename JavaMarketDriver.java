@@ -3,7 +3,6 @@ import java.util.Scanner;
 public class JavaMarketDriver {
 
 	private static final Scanner in = new Scanner(System.in);
-	private static CustomerCreator customerCreator;
 	private static Simulator simulator;
 	
 	public static void main(String[] args) {
