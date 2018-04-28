@@ -5,6 +5,7 @@ import java.util.TreeSet;
 public class SimSimulator extends Simulator {
 
 	private CustomerCreator customerCreator;
+	private Scanner in;
 	
 	public SimSimulator() {
 		initialize();
@@ -14,7 +15,6 @@ public class SimSimulator extends Simulator {
 
 		time = 0;
 		currentID = 1;
-		customersHelped = 0;
 		customersDissatisfied = 0;
 		customersSatisfied = 0;
 		averageWaitTime = 0;
@@ -24,28 +24,30 @@ public class SimSimulator extends Simulator {
 		minUnusedFull = 0;
 		minUnusedSelf = 0;
 		minUnusedTotal = 0;
+		averageFullWaitTime = 0;
+		averageSelfWaitTime = 0;
 		customers =  new Queue<Customer>();
 		fullLaneQueues = new ArrayList<Queue<Customer>>();
 		selfLaneQueue = new Queue<Customer>();
 		customersCompleted = new TreeSet<Customer>();
+		in = new Scanner(System.in);
 		
-		Scanner in = new Scanner(System.in);
 		System.out.println("Minimum inter-arrival time : ");
-		int minInterArrival = in.nextInt();
+		int minInterArrival = validateInput(1);
 		System.out.println("Maximum inter-arrival time : ");
-		int maxInterArrival = in.nextInt();
+		int maxInterArrival = validateInput(minInterArrival);
 		System.out.println("Minimum service time : ");
-		int minService = in.nextInt();
+		int minService = validateInput(1);
 		System.out.println("Maximum service time : ");
-		int maxService = in.nextInt();
+		int maxService = validateInput(minService);
 		System.out.println("Number of customers : ");
-		this.numCustomers = in.nextInt();
+		this.numCustomers = validateInput(1);
 		System.out.println("Number of full lanes : ");
-		this.numFullLanes = in.nextInt();
+		this.numFullLanes = validateInput(1);
 		System.out.println("Number of self lanes : ");
-		this.numSelfLanes = in.nextInt();
+		this.numSelfLanes = validateInput(1);
 		System.out.println("Percent slower for self checkout : ");
-		this.selfPercentSlower = in.nextInt();
+		this.selfPercentSlower = validateInput(0, 100);
 		
 		fullLaneUnusedTime = new int[numFullLanes];
 		selfLaneUnusedTime = new int[numSelfLanes];
@@ -69,6 +71,31 @@ public class SimSimulator extends Simulator {
 			customers.push(customer);
 			lastArrival = customer.getArrivalTime();
 		}
+		
+	}
+	
+	private int validateInput(int lowerBound,int ... higherBound) {
+
+		
+		boolean valid = false;
+		int choice = lowerBound - 1;
+		
+		do {
+			
+			try {
+				choice = in.nextInt();
+				if (choice < lowerBound || (higherBound.length > 0 && choice > higherBound[0]))
+					System.out.printf("Error : Input must be greater than %s%s\n",
+							lowerBound - 1, (higherBound.length > 0) ? (" and less than " + (higherBound[0] + 1)) : "");
+				else valid = true;
+			}
+			catch (NumberFormatException e) {
+				System.out.println("Not a valid input.");
+			}
+			
+		} while (!valid);
+		
+		return choice;
 		
 	}
 	
