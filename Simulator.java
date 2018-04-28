@@ -205,13 +205,15 @@ public abstract class Simulator {
 
 		totalUnusedTime = totalUnusedTimeSelf + totalUnusedTimeFull;
 
+		System.out.printf("Simulation took a total of %d minutes.\n\n", time);
+		
 		/* Logging Analytics */
 
 		// Customer analytics
 		System.out.println("Customer analytics : ");
 		System.out.printf("\tAverage wait time : %.2f min\n", averageWaitTime);
-		System.out.printf("\tAverage wait time for full service %.2f\n", averageFullWaitTime);
-		System.out.printf("\tAverage wait time for self service %.2f\n", averageSelfWaitTime);
+		System.out.printf("\tAverage wait time for full service %.2f min\n", averageFullWaitTime);
+		System.out.printf("\tAverage wait time for self service %.2f min\n", averageSelfWaitTime);
 		System.out.printf("\tSatisfied Customers : %d\n", customersSatisfied);
 		System.out.printf("\tDissatisfied Customers : %d\n", customersDissatisfied);
 		System.out.printf("\tPercentage of customers that were satisfied : %.2f%%\n", (((double) customersSatisfied) / numCustomers) * 100);
@@ -296,6 +298,7 @@ public abstract class Simulator {
 
 		System.out.println("\nThank you for using the Java Market Driver v3. Have a nice day!");
 
+		System.exit(0);
 
 	}
 
